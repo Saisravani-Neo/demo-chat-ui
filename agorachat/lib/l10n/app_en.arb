@@ -1,0 +1,164 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../data/services/agora_rtc_service.dart';
+import '../bloc/voice_call/voice_call_bloc.dart';
+import '../bloc/voice_call/voice_call_event.dart';
+import '../bloc/voice_call/voice_call_state.dart';
+
+class VoiceCallScreen extends StatefulWidget {
+  final String receiverId;
+
+  const VoiceCallScreen({
+    super.key,
+    required this.receiverId,
+  });
+
+  @override
+  State<VoiceCallScreen> createState() => _VoiceCallScreenState();
+}
+
+class _VoiceCallScreenState extends State<VoiceCallScreen> {
+  final AgoraRtcService _rtcService = AgoraRtcService();
+
+  bool muted = false;
+  bool speakerEnabled = false;
+  String? callId;
+  DateTime? startTime;
+
+  @override
+  void initState() {
+    super.initState();
+
+    context.read<VoiceCallBloc>().add(
+          StartVoiceCallEvent(widget.receiverId),
+        );
+  }
+
+  Future<void> _endCall() async {
+    final duration = startTime == null
+        ? 0
+        : DateTime.now().difference(startTime!).inSeconds;
+
+    if (callId != null) {
+      context.read<VoiceCallBloc>().add(
+            EndVoiceCallEvent(
+              callId: callId!,
+              durationSeconds: duration,
+            ),
+          );
+    }
+
+    await _rtcService.leave();
+
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _rtcService.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<VoiceCallBloc, VoiceCallState>(
+      listener: (context, state) async {
+        if (state is VoiceCallStarted) {
+          callId = state.rtcToken.callId;
+          startTime = DateTime.now();
+
+          await _rtcService.init(
+            appId: state.rtcToken.appId,
+            onTokenWillExpire: () {
+              context.read<VoiceCallBloc>().add(
+                    StartVoiceCallEvent(widget.receiverId),
+                  );
+            },
+            onUserJoined: (uid) {},
+            onUserOffline: (uid) {},
+          );
+
+          await _rtcService.joinChannel(
+            token: state.rtcToken.token,
+            channelName: state.rtcToken.channelName,
+            uid: state.rtcToken.uid,
+          );
+        }
+
+        if (state is VoiceCallFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+              const CircleAvatar(
+                radius: 50,
+                child: Icon(Icons.person, size: 60),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Voice Call',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                ),
+              ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    color: Colors.white,
+                    icon: Icon(
+                      muted ? Icons.mic_off : Icons.mic,
+                    ),
+                    onPressed: () async {
+                      muted = !muted;
+                      await _rtcService.mute(muted);
+                      setState(() {});
+                    },
+                  ),
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: Colors.red,
+                    child: IconButton(
+                      color: Colors.white,
+                      icon: const Icon(Icons.call_end),
+                      onPressed: _endCall,
+                    ),
+                  ),
+                  IconButton(
+                    color: Colors.white,
+                    icon: Icon(
+                      speakerEnabled
+                          ? Icons.volume_up
+                          : Icons.volume_down,
+                    ),
+                    onPressed: () async {
+                      speakerEnabled = !speakerEnabled;
+                      await _rtcService.speaker(speakerEnabled);
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

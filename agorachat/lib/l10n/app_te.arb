@@ -1,0 +1,9 @@
+{
+  "conversations": "Conversations",
+  "noConversationsFound": "No conversations found",
+  "typeMessage": "Type message",
+  "createGroup": "Create Group",
+  "groupName": "Group name",
+  "voiceCall": "Voice Call",
+  "typing": "Typing..."
+}
