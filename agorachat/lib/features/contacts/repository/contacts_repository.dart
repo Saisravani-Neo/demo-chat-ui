@@ -1,28 +1,28 @@
+import 'package:agorachat/features/chat/model/chat_response.dart';
+import 'package:agorachat/features/contacts/model/user_token_response.dart';
+import 'package:agorachat/features/contacts/model/verify_contact_model.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+
 import '../model/contact_model.dart';
 import '../model/chat_channel_model.dart';
 import '../../../core/utils/phone_number_utils.dart';
 import '../../../core/storage/local_storage.dart';
-
-// ignore: unused_import
-import '../../../core/network/api_client.dart';
-// ignore: unused_import
+import '../../../core/network/dio_provider.dart';
 import '../../../core/constants/api_constants.dart';
 
 class ContactsRepository {
   const ContactsRepository();
 
-  /// Fetches device contacts and maps them to [ContactModel].
   Future<List<ContactModel>> fetchDeviceContacts() async {
-    final contacts = await FlutterContacts.getContacts(
-      withProperties: true,
-    );
+    final contacts = await FlutterContacts.getContacts(withProperties: true);
 
     final result = <ContactModel>[];
 
     for (final contact in contacts) {
       for (final phone in contact.phones) {
         final normalized = PhoneNumberUtils.normalize(phone.number);
+
         if (normalized != null) {
           result.add(
             ContactModel.fromRaw(
@@ -37,34 +37,79 @@ class ContactsRepository {
     return result;
   }
 
-  /// Checks if a contact is registered and creates/fetches the chat channel.
   Future<ChatChannelModel> checkAndCreate(String contactNumber) async {
-    // ── DUMMY DATA ──────────────────────────────────────────────
-    // Replace with real API call when backend is ready:
-    //
-    // final response = await ApiClient.instance.post(
-    //   ApiConstants.checkAndCreateEndpoint,
-    //   data: {
-    //     'currentUserId': LocalStorage.userId,
-    //     'contactNumber': contactNumber,
-    //   },
-    // );
-    // return ChatChannelModel.fromJson(response);
-    // ────────────────────────────────────────────────────────────
+    try {
+      // Step 1: Verify contact
+      final verifyRes = await DioProvider.instance.post(
+        ApiConstants.verifyContactEndpoint,
+        data: {
+          'mobileNumber': contactNumber,
+        },
+      );
 
-    await Future.delayed(const Duration(milliseconds: 800));
+      final verifyJson = Map<String, dynamic>.from(verifyRes.data);
 
-    final currentUserId = LocalStorage.userId ?? 'USR_SELF';
-    final receiverUserId = 'USR_${contactNumber.substring(contactNumber.length - 4)}';
+      final verify = VerifyContactResponse.fromJson(
+        verifyJson['data'] != null
+            ? Map<String, dynamic>.from(verifyJson['data'])
+            : verifyJson,
+      );
 
-    // Simulates a registered response — toggle `registered: false` to test unregistered flow.
-    return ChatChannelModel.fromJson({
-      'registered': true,
-      'currentUserId': currentUserId,
-      'receiverUserId': receiverUserId,
-      'channelName': 'chat_${currentUserId}_$receiverUserId',
-      'chatToken': 'DUMMY_CHAT_TOKEN',
-      'voiceCallToken': 'DUMMY_VOICE_CALL_TOKEN',
-    });
+      if (!verify.registered) {
+        return ChatChannelModel.fromJson({
+          'registered': false,
+          'currentUserId': LocalStorage.userId,
+          'receiverUserId': null,
+          'channelName': null,
+          'chatToken': null,
+          'voiceCallToken': null,
+        });
+      }
+
+      final senderUserId = LocalStorage.userId ?? '';
+      final receiverUserId = verify.userId ?? '';
+
+      // Step 2: Create chat room
+      final roomRes = await DioProvider.instance.post(
+        ApiConstants.createChatRoomEndpoint,
+        data: {
+          'senderUserId': senderUserId,
+          'receiverUserId': receiverUserId,
+        },
+      );
+
+      final roomJson = Map<String, dynamic>.from(roomRes.data);
+
+      final room = CreateChatRoomResponse.fromJson(
+        roomJson['data'] != null
+            ? Map<String, dynamic>.from(roomJson['data'])
+            : roomJson,
+      );
+
+      final tokenRes = await DioProvider.instance.get(
+        ApiConstants.agoraUserTokenEndpoint(senderUserId),
+      );
+
+      final tokenJson = Map<String, dynamic>.from(tokenRes.data);
+
+      final token = UserTokenResponse.fromJson(
+        tokenJson['data'] != null
+            ? Map<String, dynamic>.from(tokenJson['data'])
+            : tokenJson,
+      );
+
+      return ChatChannelModel.fromJson({
+        'registered': true,
+        'currentUserId': senderUserId,
+        'receiverUserId': receiverUserId,
+        'channelName': room.channelName,
+        'chatToken': token.token,
+        'voiceCallToken': '',
+      });
+    } on DioException catch (e) {
+      throw Exception(e.error.toString());
+    } catch (e) {
+      throw Exception('Failed to create chat room.');
+    }
   }
 }

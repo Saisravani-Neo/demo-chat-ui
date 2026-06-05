@@ -17,9 +17,11 @@ class DioProvider {
         baseUrl: ApiConstants.baseUrl,
         connectTimeout: ApiConstants.connectTimeout,
         receiveTimeout: ApiConstants.receiveTimeout,
+        responseType: ResponseType.json,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       ),
     );
@@ -28,7 +30,7 @@ class DioProvider {
       LogInterceptor(
         requestBody: true,
         responseBody: true,
-        requestHeader: false,
+        requestHeader: true,
         responseHeader: false,
         error: true,
       ),
@@ -42,15 +44,24 @@ class DioProvider {
 class _ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    final message = switch (err.type) {
-      DioExceptionType.connectionTimeout => 'Connection timed out.',
-      DioExceptionType.receiveTimeout => 'Server took too long to respond.',
-      DioExceptionType.connectionError =>
-        'No internet connection. Please check your network.',
-      DioExceptionType.badResponse =>
-        err.response?.data?['message'] ?? 'Server error (${err.response?.statusCode}).',
-      _ => 'Something went wrong. Please try again.',
-    };
+    String message = 'Something went wrong. Please try again.';
+
+    if (err.type == DioExceptionType.connectionTimeout) {
+      message = 'Connection timed out.';
+    } else if (err.type == DioExceptionType.receiveTimeout) {
+      message = 'Server took too long to respond.';
+    } else if (err.type == DioExceptionType.connectionError) {
+      message = 'No internet connection. Please check your network.';
+    } else if (err.type == DioExceptionType.badResponse) {
+      final data = err.response?.data;
+
+      if (data is Map && data['message'] != null) {
+        message = data['message'].toString();
+      } else {
+        message = 'Server error (${err.response?.statusCode}).';
+      }
+    }
+
     handler.next(
       DioException(
         requestOptions: err.requestOptions,

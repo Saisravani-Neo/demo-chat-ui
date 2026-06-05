@@ -1,37 +1,37 @@
-import '../model/user_model.dart';
+import 'package:agorachat/features/register/model/user_model.dart';
+import 'package:dio/dio.dart';
 
-// ignore: unused_import
-import '../../../core/network/api_client.dart';
-// ignore: unused_import
 import '../../../core/constants/api_constants.dart';
+import '../../../core/network/dio_provider.dart';
 import '../../../core/storage/local_storage.dart';
+
 
 class RegisterRepository {
   const RegisterRepository();
 
-  Future<UserModel> register(String mobileNumber) async {
-    // ── DUMMY DATA ──────────────────────────────────────────────
-    // Replace the block below with the real API call when backend is ready:
-    //
-    // final response = await ApiClient.instance.post(
-    //   ApiConstants.registerEndpoint,
-    //   data: {'mobileNumber': mobileNumber},
-    // );
-    // final user = UserModel.fromJson(response);
-    // ────────────────────────────────────────────────────────────
+  Future<RegisterUserResponse> registerUser({
+    required String mobileNumber,
+  }) async {
+    try {
+      final response = await DioProvider.instance.post(
+        ApiConstants.registerEndpoint,
+        data: {
+          'mobileNumber': mobileNumber,
+        },
+      );
 
-    await Future.delayed(const Duration(milliseconds: 800)); // simulate latency
+      final result = RegisterUserResponse.fromJson(response.data);
 
-    final user = UserModel(
-      userId: 'USR_${mobileNumber.substring(mobileNumber.length - 4)}',
-      mobileNumber: mobileNumber,
-    );
+      await LocalStorage.saveUser(
+        userId: result.userId,
+        mobileNumber: result.mobileNumber,
+      );
 
-    await LocalStorage.saveUser(
-      userId: user.userId,
-      mobileNumber: user.mobileNumber,
-    );
-
-    return user;
+      return result;
+    } on DioException catch (e) {
+      throw Exception(e.error.toString());
+    } catch (e) {
+      throw Exception('Failed to register user.');
+    }
   }
 }

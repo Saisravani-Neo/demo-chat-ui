@@ -1,3 +1,4 @@
+import 'package:agorachat/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -38,6 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: BlocListener<RegisterBloc, RegisterState>(
         listener: (context, state) {
           if (state is RegisterSuccess) {
@@ -61,14 +63,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF212121),
+                      color: AppTheme.primary,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Enter your mobile number to get started.',
-                    style: TextStyle(fontSize: 15, color: Colors.grey),
+                  Text(
+                  'Enter your mobile number to get started.',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey.shade600,
                   ),
+                ),
 
                   const SizedBox(height: 48),
 

@@ -27,7 +27,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Future<void> _logout() async {
-    await LocalStorage.clearAll();
+    await LocalStorage.clear();
     if (mounted) context.go('/register');
   }
 

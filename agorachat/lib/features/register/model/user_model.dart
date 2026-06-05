@@ -1,26 +1,19 @@
-import 'package:equatable/equatable.dart';
-
-class UserModel extends Equatable {
-  const UserModel({
-    required this.userId,
-    required this.mobileNumber,
-  });
-
+class RegisterUserResponse {
   final String userId;
   final String mobileNumber;
+  final String message;
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      userId: json['userId'] as String,
-      mobileNumber: json['mobileNumber'] as String,
+  RegisterUserResponse({
+    required this.userId,
+    required this.mobileNumber,
+    required this.message,
+  });
+
+  factory RegisterUserResponse.fromJson(Map<String, dynamic> json) {
+    return RegisterUserResponse(
+      userId: json['userId']?.toString() ?? '',
+      mobileNumber: json['mobileNumber']?.toString() ?? '',
+      message: json['message']?.toString() ?? '',
     );
   }
-
-  Map<String, dynamic> toJson() => {
-        'userId': userId,
-        'mobileNumber': mobileNumber,
-      };
-
-  @override
-  List<Object?> get props => [userId, mobileNumber];
 }

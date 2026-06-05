@@ -1,35 +1,17 @@
-import 'package:equatable/equatable.dart';
-import '../model/user_model.dart';
+abstract class RegisterState {}
 
-abstract class RegisterState extends Equatable {
-  const RegisterState();
+class RegisterInitial extends RegisterState {}
 
-  @override
-  List<Object?> get props => [];
-}
-
-class RegisterInitial extends RegisterState {
-  const RegisterInitial();
-}
-
-class RegisterLoading extends RegisterState {
-  const RegisterLoading();
-}
+class RegisterLoading extends RegisterState {}
 
 class RegisterSuccess extends RegisterState {
-  const RegisterSuccess({required this.user});
+  final String message;
 
-  final UserModel user;
-
-  @override
-  List<Object?> get props => [user];
+  RegisterSuccess({required this.message});
 }
 
 class RegisterFailure extends RegisterState {
-  const RegisterFailure({required this.message});
-
   final String message;
 
-  @override
-  List<Object?> get props => [message];
+  RegisterFailure({required this.message});
 }
