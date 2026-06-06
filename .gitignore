@@ -1,0 +1,51 @@
+# https://dart.dev/guides/libraries/private-files
+
+# Tool-generated files and directories
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Compilation artifacts
+build/
+
+# Android-specific
+android/app/local.properties
+android/key.properties
+android/app/src/main/assets/
+**/*.keystore
+**/*.jks
+.gradle/
+.kotlin/
+
+# iOS/macOS-specific
+ios/.generated/
+ios/Flutter/Flutter.podspec
+ios/Flutter/GeneratedPluginRegistrant.h
+ios/Flutter/GeneratedPluginRegistrant.m
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Flutter/ephemeral/
+.symlinks/
+Pods/
+
+# Linux-specific
+linux/flutter/ephemeral/
+
+# Windows-specific
+windows/flutter/ephemeral/
+
+# Web-specific
+web/index.html.json
+
+# IDEs and editors
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
