@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,6 +12,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../widgets/primary_button.dart';
 import '../../../widgets/loading_widget.dart';
 import '../../../widgets/common_snackbar.dart';
+import '../../../widgets/common_text_field.dart';
+import '../../../core/utils/phone_number_utils.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -60,6 +63,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
         title: const Text('Select Contact'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.person_add),
+            tooltip: 'Add Manually',
+            onPressed: () => showAddManualContactDialog(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
             onPressed: _logout,
@@ -69,7 +77,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       body: BlocConsumer<ContactsBloc, ContactsState>(
         listener: (context, state) {
           if (state is ContactsNavigateToChat) {
-            context.go(
+            context.push(
               '/chat',
               extra: {
                 'channel': state.channel,
@@ -125,11 +133,35 @@ class _ContactsListView extends StatelessWidget {
     final contacts = state.contacts;
 
     if (contacts.isEmpty) {
-      return const Center(
-        child: Text(
-          'No contacts with valid phone numbers found.',
-          style: TextStyle(color: Colors.grey),
-          textAlign: TextAlign.center,
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'No contacts with valid phone numbers found.',
+                style: TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => showAddManualContactDialog(context),
+                icon: const Icon(Icons.person_add),
+                label: const Text('Add Contact Manually'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -255,6 +287,18 @@ class _PermissionDeniedView extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             PrimaryButton(label: 'Grant Permission', onPressed: onRetry),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () => showAddManualContactDialog(context),
+              icon: const Icon(Icons.person_add, color: AppTheme.primary),
+              label: const Text(
+                'Add Contact Manually',
+                style: TextStyle(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -290,6 +334,123 @@ class _ErrorView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Add manual contact dialog ───────────────────────────────────────────────
+
+void showAddManualContactDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return _AddManualContactDialog(
+        contactsBloc: context.read<ContactsBloc>(),
+      );
+    },
+  );
+}
+
+class _AddManualContactDialog extends StatefulWidget {
+  const _AddManualContactDialog({required this.contactsBloc});
+
+  final ContactsBloc contactsBloc;
+
+  @override
+  State<_AddManualContactDialog> createState() => _AddManualContactDialogState();
+}
+
+class _AddManualContactDialogState extends State<_AddManualContactDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    widget.contactsBloc.add(AddManualContact(
+      name: name,
+      phoneNumber: phone,
+    ));
+
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Add Contact Manually',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CommonTextField(
+                controller: _nameController,
+                hint: 'Enter contact name',
+                label: 'Name',
+                keyboardType: TextInputType.name,
+                textInputAction: TextInputAction.next,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              CommonTextField(
+                controller: _phoneController,
+                hint: 'Enter 10-digit number',
+                label: 'Mobile Number',
+                prefixText: '+91 ',
+                keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                maxLength: 10,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _submit(),
+                validator: PhoneNumberUtils.validateInput,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            minimumSize: const Size(80, 40),
+          ),
+          onPressed: _submit,
+          child: const Text('Add'),
+        ),
+      ],
     );
   }
 }

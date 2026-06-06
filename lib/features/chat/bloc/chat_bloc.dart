@@ -9,6 +9,7 @@ import 'chat_event.dart';
 import 'chat_state.dart';
 import '../model/chat_message_model.dart';
 import '../repository/chat_repository.dart';
+import '../../../core/storage/local_storage.dart';
 
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ChatBloc({
@@ -21,6 +22,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatRecordingStopped>(_onRecordingStopped);
     on<ChatMessageReceived>(_onMessageReceived);
     on<ChatVoicePlayToggled>(_onVoicePlayToggled);
+    on<ChatReadReceiptReceived>(_onReadReceiptReceived);
   }
 
   final ChatRepository repository;
@@ -40,7 +42,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     try {
       await repository.login();
 
-      // Register incoming-message listener
+      // Register incoming-message and read receipt listeners
       ChatClient.getInstance.chatManager.addEventHandler(
         'chat_bloc_listener',
         ChatEventHandler(
@@ -49,10 +51,19 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
               _handleIncomingMessage(msg);
             }
           },
+          onConversationRead: (from, to) {
+            if (from == receiverId) {
+              add(const ChatReadReceiptReceived());
+            }
+          },
+          onMessagesRead: (messages) {
+            add(const ChatReadReceiptReceived());
+          },
         ),
       );
 
       final history = await repository.fetchHistory(event.receiverId);
+      await repository.markAsRead(event.receiverId);
       emit(ChatReady(messages: history));
     } catch (e) {
       emit(ChatFailure(message: e.toString()));
@@ -64,23 +75,30 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     ChatMessageModel? model;
 
+    final isSent = msg.from?.toLowerCase() == LocalStorage.userId?.toLowerCase();
+    final direction = isSent ? MessageDirection.sent : MessageDirection.received;
+
     if (body is ChatTextMessageBody) {
       model = ChatMessageModel(
         messageId: msg.msgId,
         content: body.content,
         type: MessageType.text,
-        direction: MessageDirection.received,
+        direction: direction,
         timestamp: DateTime.fromMillisecondsSinceEpoch(msg.serverTime),
+        hasRead: msg.hasRead,
+        hasReadAck: msg.hasReadAck,
       );
     } else if (body is ChatVoiceMessageBody) {
       model = ChatMessageModel(
         messageId: msg.msgId,
         content: body.remotePath ?? '',
         type: MessageType.voice,
-        direction: MessageDirection.received,
+        direction: direction,
         timestamp: DateTime.fromMillisecondsSinceEpoch(msg.serverTime),
         voiceDuration: body.duration,
         localPath: body.localPath,
+        hasRead: msg.hasRead,
+        hasReadAck: msg.hasReadAck,
       );
     }
 
@@ -209,7 +227,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     final current = state;
     if (current is! ChatReady) return;
 
-    emit(current.copyWith(messages: [...current.messages, event.message]));
+    // Mark conversation read in local db and send ack to peer
+    repository.markAsRead(receiverId);
+
+    // Show message as read in our UI immediately
+    final messageWithRead = event.message.copyWith(hasRead: true);
+
+    emit(current.copyWith(messages: [...current.messages, messageWithRead]));
   }
 
   // ─── Voice playback toggle (UI state only) ─────────────────────────────────
@@ -227,6 +251,25 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       }
       // Stop any other voice message that was playing
       return m.type == MessageType.voice ? m.copyWith(isPlaying: false) : m;
+    }).toList();
+
+    emit(current.copyWith(messages: updated));
+  }
+
+  // ─── Read receipt received ──────────────────────────────────────────────────
+
+  void _onReadReceiptReceived(
+    ChatReadReceiptReceived event,
+    Emitter<ChatState> emit,
+  ) {
+    final current = state;
+    if (current is! ChatReady) return;
+
+    final updated = current.messages.map((m) {
+      if (m.isSent) {
+        return m.copyWith(hasReadAck: true);
+      }
+      return m;
     }).toList();
 
     emit(current.copyWith(messages: updated));

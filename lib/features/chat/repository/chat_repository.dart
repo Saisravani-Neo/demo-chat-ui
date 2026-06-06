@@ -29,11 +29,27 @@ class ChatRepository {
     final options = ChatOptions(
       appKey: AgoraConstants.chatAppKey,
       autoLogin: false,
+      requireAck: true,
     );
 
     await ChatClient.getInstance.init(options);
-    await ChatClient.getInstance.loginWithToken(userId, chatToken);
-    _isLoggedIn = true;
+
+    final alreadyLoggedIn = await ChatClient.getInstance.isLoginBefore();
+    if (alreadyLoggedIn) {
+      _isLoggedIn = true;
+      return;
+    }
+
+    try {
+      await ChatClient.getInstance.loginWithToken(userId, chatToken);
+      _isLoggedIn = true;
+    } on ChatError catch (e) {
+      if (e.code == 200) {
+        _isLoggedIn = true;
+        return;
+      }
+      rethrow;
+    }
   }
 
   Future<void> logout() async {
@@ -57,6 +73,18 @@ class ChatRepository {
         .map((m) => _fromSdkMessage(m, myUserId: userId))
         .whereType<ChatMessageModel>()
         .toList();
+  }
+
+  /// Marks all messages in the conversation as read locally and sends a read ack.
+  Future<void> markAsRead(String receiverId) async {
+    try {
+      final conversation = await ChatClient.getInstance.chatManager
+          .getConversation(receiverId);
+      await conversation?.markAllMessagesAsRead();
+      await ChatClient.getInstance.chatManager.sendConversationReadAck(receiverId);
+    } catch (_) {
+      // Ignored: network failure during read receipt sending shouldn't crash the app
+    }
   }
 
   // ─── Send messages ─────────────────────────────────────────────────────────
@@ -97,7 +125,7 @@ class ChatRepository {
     ChatMessage message, {
     required String myUserId,
   }) {
-    final isSent = message.from == myUserId;
+    final isSent = message.from?.toLowerCase() == myUserId.toLowerCase();
     final direction =
         isSent ? MessageDirection.sent : MessageDirection.received;
     final ts = DateTime.fromMillisecondsSinceEpoch(message.serverTime);
@@ -111,6 +139,8 @@ class ChatRepository {
         type: MessageType.text,
         direction: direction,
         timestamp: ts,
+        hasRead: message.hasRead,
+        hasReadAck: message.hasReadAck,
       );
     }
 
@@ -123,6 +153,8 @@ class ChatRepository {
         timestamp: ts,
         voiceDuration: body.duration,
         localPath: body.localPath,
+        hasRead: message.hasRead,
+        hasReadAck: message.hasReadAck,
       );
     }
 

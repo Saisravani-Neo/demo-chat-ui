@@ -1,0 +1,74 @@
+PODS:
+  - agora_chat_sdk (0.0.1):
+    - Flutter
+    - HyphenateChat (= 4.10.2)
+  - agora_rtc_engine (6.5.4):
+    - AgoraIrisRTC_iOS (= 4.5.3-build.1)
+    - AgoraRtcEngine_Special_iOS (= 4.5.3.70)
+    - Flutter
+  - AgoraIrisRTC_iOS (4.5.3-build.1)
+  - AgoraRtcEngine_Special_iOS (4.5.3.70)
+  - Flutter (1.0.0)
+  - flutter_contacts (0.0.1):
+    - Flutter
+  - HyphenateChat (4.10.2)
+  - iris_method_channel (0.0.1):
+    - Flutter
+  - permission_handler_apple (9.4.8):
+    - Flutter
+  - record_ios (1.2.1):
+    - Flutter
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - agora_chat_sdk (from `.symlinks/plugins/agora_chat_sdk/ios`)
+  - agora_rtc_engine (from `.symlinks/plugins/agora_rtc_engine/ios`)
+  - Flutter (from `Flutter`)
+  - flutter_contacts (from `.symlinks/plugins/flutter_contacts/ios`)
+  - iris_method_channel (from `.symlinks/plugins/iris_method_channel/ios`)
+  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+  - record_ios (from `.symlinks/plugins/record_ios/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+
+SPEC REPOS:
+  trunk:
+    - AgoraIrisRTC_iOS
+    - AgoraRtcEngine_Special_iOS
+    - HyphenateChat
+
+EXTERNAL SOURCES:
+  agora_chat_sdk:
+    :path: ".symlinks/plugins/agora_chat_sdk/ios"
+  agora_rtc_engine:
+    :path: ".symlinks/plugins/agora_rtc_engine/ios"
+  Flutter:
+    :path: Flutter
+  flutter_contacts:
+    :path: ".symlinks/plugins/flutter_contacts/ios"
+  iris_method_channel:
+    :path: ".symlinks/plugins/iris_method_channel/ios"
+  permission_handler_apple:
+    :path: ".symlinks/plugins/permission_handler_apple/ios"
+  record_ios:
+    :path: ".symlinks/plugins/record_ios/ios"
+  shared_preferences_foundation:
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+
+SPEC CHECKSUMS:
+  agora_chat_sdk: c971710a18b05c37d13f28a865efdb4b1bdb62fa
+  agora_rtc_engine: c8ad6313ec7a1b2f28ab3328ff485df6d19a32de
+  AgoraIrisRTC_iOS: d6468160cad25d36c2b6cb5e9bd5b17ba4e58677
+  AgoraRtcEngine_Special_iOS: 48063561d21b07524358ee0a17abc6be762c58f7
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_contacts: 5383945387e7ca37cf963d4be57c21f2fc15ca9f
+  HyphenateChat: 6924f613947f6301bee909fc12c3bb01b50f52c6
+  iris_method_channel: 7d661cf3259b3009ae423508470dbeb9374446ee
+  permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
+  record_ios: 980fd386a97a35987d0fce3dfda4b26a38c90f4c
+  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
+
+PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+
+COCOAPODS: 1.16.2

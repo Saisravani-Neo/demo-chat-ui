@@ -27,3 +27,15 @@ class ToggleContactSelection extends ContactsEvent {
 class AddContact extends ContactsEvent {
   const AddContact();
 }
+
+/// Verify and add a contact manually (using name and phone number)
+class AddManualContact extends ContactsEvent {
+  const AddManualContact({required this.name, required this.phoneNumber});
+
+  final String name;
+  final String phoneNumber;
+
+  @override
+  List<Object?> get props => [name, phoneNumber];
+}
+

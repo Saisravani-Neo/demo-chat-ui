@@ -13,6 +13,28 @@ class LocalStorage {
 
   static String? get mobileNumber => _prefs?.getString('mobileNumber');
 
+  static String? get chatToken => _prefs?.getString('chatToken');
+
+  static Future<void> saveChatToken(String token) async {
+    await _prefs?.setString('chatToken', token);
+  }
+
+  static Future<void> saveContactName(String userId, String name) async {
+    await _prefs?.setString('contact_name_$userId', name);
+  }
+
+  static String? getContactName(String userId) {
+    return _prefs?.getString('contact_name_$userId');
+  }
+
+  static Future<void> saveChannelName(String userId, String channelName) async {
+    await _prefs?.setString('channel_name_$userId', channelName);
+  }
+
+  static String? getChannelName(String userId) {
+    return _prefs?.getString('channel_name_$userId');
+  }
+
   static Future<void> saveUser({
     required String userId,
     required String mobileNumber,

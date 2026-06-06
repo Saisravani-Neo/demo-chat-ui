@@ -5,3 +5,9 @@ class RegisterSubmitted extends RegisterEvent {
 
   RegisterSubmitted({required this.mobileNumber});
 }
+
+class LoginSubmitted extends RegisterEvent {
+  final String mobileNumber;
+
+  LoginSubmitted({required this.mobileNumber});
+}

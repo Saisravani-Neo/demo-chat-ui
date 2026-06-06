@@ -10,6 +10,9 @@ import '../../contacts/model/chat_channel_model.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../widgets/loading_widget.dart';
 import '../../../widgets/common_snackbar.dart';
+import '../../../core/storage/local_storage.dart';
+import '../../../core/network/dio_provider.dart';
+import '../../../core/constants/api_constants.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -63,6 +66,84 @@ class _ChatScreenState extends State<ChatScreen> {
     context.read<ChatBloc>().add(ChatTextSent(text: text));
   }
 
+  Future<void> _handleVoiceCall() async {
+    final channel = widget.channel;
+
+    String? channelName = channel.channelName;
+    if (channelName == null || channelName.isEmpty) {
+      channelName = LocalStorage.getChannelName(channel.receiverUserId ?? '');
+    }
+
+    if (channelName == null || channelName.isEmpty) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(color: AppTheme.primary),
+        ),
+      );
+
+      try {
+        final senderUserId = LocalStorage.userId ?? '';
+        final receiverUserId = channel.receiverUserId ?? '';
+
+        final response = await DioProvider.instance.post(
+          ApiConstants.createChatRoomEndpoint,
+          data: {
+            'senderUserId': senderUserId,
+            'receiverUserId': receiverUserId,
+          },
+        );
+
+        final json = Map<String, dynamic>.from(response.data);
+        final roomJson = json['data'] != null
+            ? Map<String, dynamic>.from(json['data'])
+            : json;
+
+        channelName = roomJson['channelName']?.toString();
+
+        if (channelName != null && channelName.isNotEmpty) {
+          await LocalStorage.saveChannelName(receiverUserId, channelName);
+        }
+
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context);
+          CommonSnackbar.showError(context, 'Failed to connect voice call room.');
+        }
+        return;
+      }
+    }
+
+    if (channelName == null || channelName.isEmpty) {
+      if (mounted) {
+        CommonSnackbar.showError(context, 'Voice call room is not available.');
+      }
+      return;
+    }
+
+    final populatedChannel = ChatChannelModel(
+      registered: channel.registered,
+      currentUserId: channel.currentUserId,
+      receiverUserId: channel.receiverUserId,
+      channelName: channelName,
+      chatToken: channel.chatToken,
+      voiceCallToken: channel.voiceCallToken,
+      contactName: channel.contactName,
+    );
+
+    if (mounted) {
+      context.go(
+        '/voice-call',
+        extra: {
+          'channel': populatedChannel,
+          'contactName': widget.contactName,
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,13 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             icon: const Icon(Icons.call),
             tooltip: 'Voice Call',
-            onPressed: () => context.go(
-              '/voice-call',
-              extra: {
-                'channel': widget.channel,
-                'contactName': widget.contactName,
-              },
-            ),
+            onPressed: _handleVoiceCall,
           ),
         ],
       ),
@@ -235,15 +310,25 @@ class _MessageBubble extends StatelessWidget {
                       ),
                     )
                   : _VoiceBubble(message: message, isSent: isSent),
-              const SizedBox(height: 4),
-              Text(
-                '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isSent
-                      ? Colors.white70
-                      : Colors.grey,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isSent ? Colors.white70 : Colors.grey,
+                    ),
+                  ),
+                  if (isSent) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      message.hasReadAck ? Icons.done_all : Icons.done,
+                      size: 16,
+                      color: message.hasReadAck ? Colors.cyanAccent : Colors.white70,
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

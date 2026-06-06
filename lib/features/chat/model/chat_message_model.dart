@@ -14,6 +14,8 @@ class ChatMessageModel extends Equatable {
     this.voiceDuration,
     this.localPath,
     this.isPlaying = false,
+    this.hasRead = false,
+    this.hasReadAck = false,
   });
 
   final String messageId;
@@ -34,9 +36,19 @@ class ChatMessageModel extends Equatable {
   /// Playback state (UI only, not persisted).
   final bool isPlaying;
 
+  /// Whether the local user has read this message (received messages)
+  final bool hasRead;
+
+  /// Whether the peer user has read this message (sent messages)
+  final bool hasReadAck;
+
   bool get isSent => direction == MessageDirection.sent;
 
-  ChatMessageModel copyWith({bool? isPlaying}) {
+  ChatMessageModel copyWith({
+    bool? isPlaying,
+    bool? hasRead,
+    bool? hasReadAck,
+  }) {
     return ChatMessageModel(
       messageId: messageId,
       content: content,
@@ -46,9 +58,20 @@ class ChatMessageModel extends Equatable {
       voiceDuration: voiceDuration,
       localPath: localPath,
       isPlaying: isPlaying ?? this.isPlaying,
+      hasRead: hasRead ?? this.hasRead,
+      hasReadAck: hasReadAck ?? this.hasReadAck,
     );
   }
 
   @override
-  List<Object?> get props => [messageId, content, type, direction, timestamp];
+  List<Object?> get props => [
+        messageId,
+        content,
+        type,
+        direction,
+        timestamp,
+        isPlaying,
+        hasRead,
+        hasReadAck,
+      ];
 }

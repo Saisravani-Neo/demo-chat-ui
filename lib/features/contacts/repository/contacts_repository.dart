@@ -3,6 +3,7 @@ import 'package:agorachat/features/contacts/model/user_token_response.dart';
 import 'package:agorachat/features/contacts/model/verify_contact_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 
 import '../model/contact_model.dart';
 import '../model/chat_channel_model.dart';
@@ -68,6 +69,34 @@ class ContactsRepository {
 
       final senderUserId = LocalStorage.userId ?? '';
       final receiverUserId = verify.userId ?? '';
+
+      // Check if we already have this conversation and its channelName cached
+      final existingConversation = await ChatClient.getInstance.chatManager.getConversation(
+        receiverUserId,
+        createIfNeed: false,
+      );
+      final cachedChannelName = LocalStorage.getChannelName(receiverUserId);
+
+      if (existingConversation != null && cachedChannelName != null && cachedChannelName.isNotEmpty) {
+        final tokenRes = await DioProvider.instance.get(
+          ApiConstants.agoraUserTokenEndpoint(senderUserId),
+        );
+        final tokenJson = Map<String, dynamic>.from(tokenRes.data);
+        final token = UserTokenResponse.fromJson(
+          tokenJson['data'] != null
+              ? Map<String, dynamic>.from(tokenJson['data'])
+              : tokenJson,
+        );
+
+        return ChatChannelModel(
+          registered: true,
+          currentUserId: senderUserId,
+          receiverUserId: receiverUserId,
+          channelName: cachedChannelName,
+          chatToken: token.token,
+          voiceCallToken: '',
+        );
+      }
 
       // Step 2: Create chat room
       final roomRes = await DioProvider.instance.post(

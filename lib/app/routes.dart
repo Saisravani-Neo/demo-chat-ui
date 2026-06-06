@@ -19,6 +19,10 @@ import '../features/chat/screen/chat_screen.dart';
 
 import '../features/voice_call/screen/voice_call_screen.dart';
 
+import '../features/conversations/bloc/conversations_bloc.dart';
+import '../features/conversations/repository/conversations_repository.dart';
+import '../features/conversations/screen/conversations_screen.dart';
+
 final GoRouter appRouter = GoRouter(
   initialLocation: '/register',
   redirect: (context, state) {
@@ -28,12 +32,26 @@ final GoRouter appRouter = GoRouter(
     // Not logged in and trying to access a protected route → back to register
     if (!loggedIn && !onRegister) return '/register';
 
-    // Already logged in and sitting on register → skip to contacts
-    if (loggedIn && onRegister) return '/contacts';
+    // Already logged in and sitting on register → skip to home
+    if (loggedIn && onRegister) return '/';
 
     return null; // no redirect needed
   },
   routes: [
+    // ── Conversations (Home) ──────────────────────────────────────────────────
+    GoRoute(
+      path: '/',
+      pageBuilder: (context, state) => _fade(
+        state,
+        BlocProvider(
+          create: (_) => ConversationsBloc(
+            repository: ConversationsRepository(),
+          ),
+          child: const ConversationsScreen(),
+        ),
+      ),
+    ),
+
     // ── Register ──────────────────────────────────────────────────────────────
     GoRoute(
       path: '/register',

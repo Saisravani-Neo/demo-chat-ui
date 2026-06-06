@@ -57,3 +57,8 @@ class ChatVoicePlayToggled extends ChatEvent {
   @override
   List<Object?> get props => [messageId];
 }
+
+/// The peer has read the conversation (read receipts received).
+class ChatReadReceiptReceived extends ChatEvent {
+  const ChatReadReceiptReceived();
+}
